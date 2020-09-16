@@ -1,9 +1,7 @@
 // Code generated for package bindata by go-bindata DO NOT EDIT. (@generated)
 // sources:
+// manifests/broker/broker-cluster-role.yaml
 // manifests/broker/broker-namespace.yaml
-// manifests/broker/broker-role.yaml
-// manifests/broker/broker-rolebinding.yaml
-// manifests/broker/broker-serviceaccount.yaml
 package bindata
 
 import (
@@ -57,6 +55,38 @@ func (fi bindataFileInfo) Sys() interface{} {
 	return nil
 }
 
+var _manifestsBrokerBrokerClusterRoleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: submariner-k8s-broker-cluster
+  namespace: {{ .SubmarinerNamespace }}
+rules:
+- apiGroups: ["submariner.io"]
+  resources: ["clusters", "endpoints"]
+  verbs: ["create", "get", "list", "watch", "patch", "update", "delete"]
+- apiGroups: ["lighthouse.submariner.io"]
+  resources: ["*"]
+  verbs: ["create", "get", "list", "watch", "patch", "update", "delete"]
+- apiGroups: ["discovery.k8s.io"]
+  resources: ["endpointslices"]
+  verbs: ["create", "get", "list", "watch","patch", "update", "delete"]
+`)
+
+func manifestsBrokerBrokerClusterRoleYamlBytes() ([]byte, error) {
+	return _manifestsBrokerBrokerClusterRoleYaml, nil
+}
+
+func manifestsBrokerBrokerClusterRoleYaml() (*asset, error) {
+	bytes, err := manifestsBrokerBrokerClusterRoleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "manifests/broker/broker-cluster-role.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _manifestsBrokerBrokerNamespaceYaml = []byte(`apiVersion: v1
 kind: Namespace
 metadata:
@@ -74,85 +104,6 @@ func manifestsBrokerBrokerNamespaceYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "manifests/broker/broker-namespace.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _manifestsBrokerBrokerRoleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: open-cluster-management:submariner
-  namespace: {{ .SubmarinerNamespace }}
-rules:
-# Allow spoke registration agent to get/update coordination.k8s.io/lease
-- apiGroups: ["coordination.k8s.io"]
-  resources: ["leases"]
-  resourceNames: ["cluster-lease-{{ .ManagedClusterName }}"]
-  verbs: ["get", "update"]
-`)
-
-func manifestsBrokerBrokerRoleYamlBytes() ([]byte, error) {
-	return _manifestsBrokerBrokerRoleYaml, nil
-}
-
-func manifestsBrokerBrokerRoleYaml() (*asset, error) {
-	bytes, err := manifestsBrokerBrokerRoleYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "manifests/broker/broker-role.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _manifestsBrokerBrokerRolebindingYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: open-cluster-management:submariner
-  namespace: {{ .SubmarinerNamespace }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: open-cluster-management:submariner
-subjects:
-- kind: ServiceAccount
-  name: open-cluster-management:submariner
-`)
-
-func manifestsBrokerBrokerRolebindingYamlBytes() ([]byte, error) {
-	return _manifestsBrokerBrokerRolebindingYaml, nil
-}
-
-func manifestsBrokerBrokerRolebindingYaml() (*asset, error) {
-	bytes, err := manifestsBrokerBrokerRolebindingYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "manifests/broker/broker-rolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _manifestsBrokerBrokerServiceaccountYaml = []byte(`apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: submariner-sa
-  namespace: {{ .SubmarinerNamespace }}
-`)
-
-func manifestsBrokerBrokerServiceaccountYamlBytes() ([]byte, error) {
-	return _manifestsBrokerBrokerServiceaccountYaml, nil
-}
-
-func manifestsBrokerBrokerServiceaccountYaml() (*asset, error) {
-	bytes, err := manifestsBrokerBrokerServiceaccountYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "manifests/broker/broker-serviceaccount.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -209,10 +160,8 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"manifests/broker/broker-namespace.yaml":      manifestsBrokerBrokerNamespaceYaml,
-	"manifests/broker/broker-role.yaml":           manifestsBrokerBrokerRoleYaml,
-	"manifests/broker/broker-rolebinding.yaml":    manifestsBrokerBrokerRolebindingYaml,
-	"manifests/broker/broker-serviceaccount.yaml": manifestsBrokerBrokerServiceaccountYaml,
+	"manifests/broker/broker-cluster-role.yaml": manifestsBrokerBrokerClusterRoleYaml,
+	"manifests/broker/broker-namespace.yaml":    manifestsBrokerBrokerNamespaceYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -258,10 +207,8 @@ type bintree struct {
 var _bintree = &bintree{nil, map[string]*bintree{
 	"manifests": {nil, map[string]*bintree{
 		"broker": {nil, map[string]*bintree{
-			"broker-namespace.yaml":      {manifestsBrokerBrokerNamespaceYaml, map[string]*bintree{}},
-			"broker-role.yaml":           {manifestsBrokerBrokerRoleYaml, map[string]*bintree{}},
-			"broker-rolebinding.yaml":    {manifestsBrokerBrokerRolebindingYaml, map[string]*bintree{}},
-			"broker-serviceaccount.yaml": {manifestsBrokerBrokerServiceaccountYaml, map[string]*bintree{}},
+			"broker-cluster-role.yaml": {manifestsBrokerBrokerClusterRoleYaml, map[string]*bintree{}},
+			"broker-namespace.yaml":    {manifestsBrokerBrokerNamespaceYaml, map[string]*bintree{}},
 		}},
 	}},
 }}

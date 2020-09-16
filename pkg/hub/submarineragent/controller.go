@@ -51,10 +51,9 @@ func NewSubmarinerAgentController(
 
 func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	// get clusterset
-	// get service account token
-	// get psk
+	// get service account token/rolebinding
 	// generate submariner CR
 	// install operator manifestwork
-	// install submarinere CR
+	// install submarinere CR manifestwork
 	return nil
 }

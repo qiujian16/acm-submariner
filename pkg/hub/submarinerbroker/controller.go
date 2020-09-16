@@ -28,9 +28,7 @@ const brokerFinalizer = "cluster.open-cluster-management.io/submariner-cleanup"
 
 var staticResourceFiles = []string{
 	"manifests/broker/broker-namespace.yaml",
-	"manifests/broker/broker-role.yaml",
-	"manifests/broker/broker-rolebinding.yaml",
-	"manifests/broker/broker-serviceaccount.yaml",
+	"manifests/broker/broker-cluster-role.yaml",
 }
 
 type submarinerBrokerController struct {
@@ -80,6 +78,8 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 	config := &brokerConfig{
 		SubmarinerNamespace: fmt.Sprintf("submariner-clusterset-%s-broker", clusterSet.Name),
 	}
+
+	// get psk
 
 	// Update finalizer at first
 	if clusterSet.DeletionTimestamp.IsZero() {

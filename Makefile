@@ -11,7 +11,7 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 )
 
 # Image URL to use all building/pushing image targets;
-IMAGE ?= acm-submarinerr
+IMAGE ?= acm-submariner
 IMAGE_REGISTRY ?= quay.io/open-cluster-management
 
 GIT_HOST ?= github.com/qiujian16
@@ -28,3 +28,5 @@ GO_TEST_PACKAGES :=./pkg/...
 # $3 - context directory for image build
 # It will generate target "image-$(1)" for building the image and binding it as a prerequisite to target "images".
 $(call build-image,$(IMAGE),$(IMAGE_REGISTRY)/$(IMAGE),./Dockerfile,.)
+
+$(call add-bindata,submariner-broker,./manifests/broker/...,bindata,bindata,./pkg/hub/submarinerbroker/bindata/bindata.go)

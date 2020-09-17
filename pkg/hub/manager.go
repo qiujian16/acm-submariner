@@ -2,6 +2,7 @@ package hub
 
 import (
 	"context"
+	"k8s.io/client-go/dynamic"
 	"time"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
@@ -21,6 +22,11 @@ import (
 // RunControllerManager starts the controllers on hub to manage spoke cluster registration.
 func RunControllerManager(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
 	kubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
+	if err != nil {
+		return err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
 		return err
 	}
@@ -47,6 +53,7 @@ func RunControllerManager(ctx context.Context, controllerContext *controllercmd.
 	)
 	submarinerAgentController := submarineragent.NewSubmarinerAgentController(
 		kubeClient,
+		dynamicClient,
 		clusterClient,
 		workClient,
 		clusterInformers.Cluster().V1().ManagedClusters(),

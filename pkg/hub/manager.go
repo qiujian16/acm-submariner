@@ -46,10 +46,11 @@ func RunControllerManager(ctx context.Context, controllerContext *controllercmd.
 		controllerContext.EventRecorder,
 	)
 	submarinerAgentController := submarineragent.NewSubmarinerAgentController(
-		clusterClient.ClusterV1().ManagedClusters(),
 		kubeClient,
+		clusterClient,
 		workClient,
 		clusterInformers.Cluster().V1().ManagedClusters(),
+		clusterInformers.Cluster().V1alpha1().ManagedClusterSets(),
 		workInformers.Work().V1().ManifestWorks(),
 		controllerContext.EventRecorder,
 	)

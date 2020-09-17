@@ -386,6 +386,7 @@ gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/yaml.v2 v2.3.0
 gopkg.in/yaml.v2
 # k8s.io/api v0.19.0
+## explicit
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
 k8s.io/api/admissionregistration/v1

@@ -132,6 +132,7 @@ spec:
   brokerK8sRemoteNamespace: {{ .BrokerNamespace }}
   clusterID: {{ .ClusterName }}
   debug: false
+  natEnabled: false
   namespace: submariner-operator
   repository: quay.io/submariner
   version: 0.6.1
@@ -172,7 +173,7 @@ spec:
   colorCodes: blue
   debug: false
   namespace: submariner-operator
-  natEnabled: true
+  natEnabled: false
   repository: quay.io/submariner
   serviceCIDR: ""
   serviceDiscoveryEnabled: true

@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# clusters, the first cluster is hub, others are managed clusters
-clusters=('cluster1' 'cluster2' 'cluster3')
+source scripts/clusters.sh
 k8s_version="v1.18.0"
 
 ### functions ###
@@ -179,6 +178,17 @@ function accept_managed_cluster() {
     # approve the managed cluster csr
     csr_name=$(kubectl get csr |grep "${cluster}" | grep "Pending" |awk '{print $1}')
     kubectl certificate approve "${csr_name}"
+
+    echo "Wait managed clusters are joined ..."
+    while :
+    do
+        jcounts=$(kubectl get managedclusters ${cluster} | awk '{print $4}' | grep "True" | wc -l)
+        if [ ${jcounts} -eq 1 ]; then
+            kubectl get managedclusters ${cluster}
+            break
+        fi
+        sleep 1
+    done
 }
 
 ### main ###

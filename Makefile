@@ -37,5 +37,8 @@ clean:
 	scripts/deploy.sh cleanup
 .PHONY: clean
 
-clusters: images
+clusters:
 	scripts/deploy.sh
+
+demo:
+	scripts/demo.sh

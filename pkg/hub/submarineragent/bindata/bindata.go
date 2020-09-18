@@ -11,6 +11,8 @@
 // manifests/agent/operator/submariner-operator-deployment.yaml
 // manifests/agent/operator/submariner.io-servicediscoveries-cr.yaml
 // manifests/agent/operator/submariner.io-submariners-cr.yaml
+// manifests/agent/rbac/submariner-cluster-rolebinding.yaml
+// manifests/agent/rbac/submariner-cluster-serviceaccount.yaml
 // manifests/agent/rbac/submariner-lighthouse-clusterrole.yaml
 // manifests/agent/rbac/submariner-lighthouse-clusterrolebinding.yaml
 // manifests/agent/rbac/submariner-lighthouse-serviceaccount.yaml
@@ -989,6 +991,60 @@ func manifestsAgentOperatorSubmarinerIoSubmarinersCrYaml() (*asset, error) {
 	return a, nil
 }
 
+var _manifestsAgentRbacSubmarinerClusterRolebindingYaml = []byte(`kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: submariner-k8s-broker-cluster-{{ .ManagedClusterName }}
+  namespace: {{ .SubmarinerBrokerNamespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: submariner-k8s-broker-cluster
+subjects:
+  - kind: ServiceAccount
+    name: {{ .ManagedClusterName }}
+    namespace: {{ .SubmarinerBrokerNamespace }}
+`)
+
+func manifestsAgentRbacSubmarinerClusterRolebindingYamlBytes() ([]byte, error) {
+	return _manifestsAgentRbacSubmarinerClusterRolebindingYaml, nil
+}
+
+func manifestsAgentRbacSubmarinerClusterRolebindingYaml() (*asset, error) {
+	bytes, err := manifestsAgentRbacSubmarinerClusterRolebindingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "manifests/agent/rbac/submariner-cluster-rolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _manifestsAgentRbacSubmarinerClusterServiceaccountYaml = []byte(`apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .ManagedClusterName }}
+  namespace: {{ .SubmarinerBrokerNamespace }}
+  labels:
+    cluster.open-cluster-management.io/submariner-cluster-sa: {{ .ManagedClusterName }}
+`)
+
+func manifestsAgentRbacSubmarinerClusterServiceaccountYamlBytes() ([]byte, error) {
+	return _manifestsAgentRbacSubmarinerClusterServiceaccountYaml, nil
+}
+
+func manifestsAgentRbacSubmarinerClusterServiceaccountYaml() (*asset, error) {
+	bytes, err := manifestsAgentRbacSubmarinerClusterServiceaccountYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "manifests/agent/rbac/submariner-cluster-serviceaccount.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _manifestsAgentRbacSubmarinerLighthouseClusterroleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -1419,6 +1475,8 @@ var _bindata = map[string]func() (*asset, error){
 	"manifests/agent/operator/submariner-operator-deployment.yaml":                manifestsAgentOperatorSubmarinerOperatorDeploymentYaml,
 	"manifests/agent/operator/submariner.io-servicediscoveries-cr.yaml":           manifestsAgentOperatorSubmarinerIoServicediscoveriesCrYaml,
 	"manifests/agent/operator/submariner.io-submariners-cr.yaml":                  manifestsAgentOperatorSubmarinerIoSubmarinersCrYaml,
+	"manifests/agent/rbac/submariner-cluster-rolebinding.yaml":                    manifestsAgentRbacSubmarinerClusterRolebindingYaml,
+	"manifests/agent/rbac/submariner-cluster-serviceaccount.yaml":                 manifestsAgentRbacSubmarinerClusterServiceaccountYaml,
 	"manifests/agent/rbac/submariner-lighthouse-clusterrole.yaml":                 manifestsAgentRbacSubmarinerLighthouseClusterroleYaml,
 	"manifests/agent/rbac/submariner-lighthouse-clusterrolebinding.yaml":          manifestsAgentRbacSubmarinerLighthouseClusterrolebindingYaml,
 	"manifests/agent/rbac/submariner-lighthouse-serviceaccount.yaml":              manifestsAgentRbacSubmarinerLighthouseServiceaccountYaml,
@@ -1489,6 +1547,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"submariner.io-submariners-cr.yaml":        {manifestsAgentOperatorSubmarinerIoSubmarinersCrYaml, map[string]*bintree{}},
 			}},
 			"rbac": {nil, map[string]*bintree{
+				"submariner-cluster-rolebinding.yaml":           {manifestsAgentRbacSubmarinerClusterRolebindingYaml, map[string]*bintree{}},
+				"submariner-cluster-serviceaccount.yaml":        {manifestsAgentRbacSubmarinerClusterServiceaccountYaml, map[string]*bintree{}},
 				"submariner-lighthouse-clusterrole.yaml":        {manifestsAgentRbacSubmarinerLighthouseClusterroleYaml, map[string]*bintree{}},
 				"submariner-lighthouse-clusterrolebinding.yaml": {manifestsAgentRbacSubmarinerLighthouseClusterrolebindingYaml, map[string]*bintree{}},
 				"submariner-lighthouse-serviceaccount.yaml":     {manifestsAgentRbacSubmarinerLighthouseServiceaccountYaml, map[string]*bintree{}},

@@ -3,6 +3,7 @@
 // manifests/agent/operator/submariner-operator-deployment.yaml
 // manifests/agent/operator/submariner.io-servicediscoveries-cr.yaml
 // manifests/agent/operator/submariner.io-submariners-cr.yaml
+// manifests/agent/rbac/submariner-admin-aggeragate-clusterrole.yaml
 // manifests/agent/rbac/submariner-cluster-rolebinding.yaml
 // manifests/agent/rbac/submariner-cluster-serviceaccount.yaml
 // manifests/agent/rbac/submariner-lighthouse-clusterrole.yaml
@@ -128,8 +129,8 @@ spec:
   brokerK8sApiServer: {{ .BrokerAPIServer }}
   brokerK8sApiServerToken: {{ .BrokerToken }}
   brokerK8sCA: {{ .BrokerCA }}
-  brokerK8sRemoteNamespace: submariner-k8s-broker
-  clusterID: {{ .ManagedClusterName }}
+  brokerK8sRemoteNamespace: {{ .BrokerNamespace }}
+  clusterID: {{ .ClusterName }}
   debug: false
   namespace: submariner-operator
   repository: quay.io/submariner
@@ -189,6 +190,33 @@ func manifestsAgentOperatorSubmarinerIoSubmarinersCrYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "manifests/agent/operator/submariner.io-submariners-cr.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _manifestsAgentRbacSubmarinerAdminAggeragateClusterroleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: open-cluster-management:submariner-admin-aggregate-clusterrole
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules:
+  - apiGroups: ["submariner.io"]
+    resources: ["submariners","servicediscoveries"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+`)
+
+func manifestsAgentRbacSubmarinerAdminAggeragateClusterroleYamlBytes() ([]byte, error) {
+	return _manifestsAgentRbacSubmarinerAdminAggeragateClusterroleYaml, nil
+}
+
+func manifestsAgentRbacSubmarinerAdminAggeragateClusterroleYaml() (*asset, error) {
+	bytes, err := manifestsAgentRbacSubmarinerAdminAggeragateClusterroleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "manifests/agent/rbac/submariner-admin-aggeragate-clusterrole.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -669,6 +697,7 @@ var _bindata = map[string]func() (*asset, error){
 	"manifests/agent/operator/submariner-operator-deployment.yaml":       manifestsAgentOperatorSubmarinerOperatorDeploymentYaml,
 	"manifests/agent/operator/submariner.io-servicediscoveries-cr.yaml":  manifestsAgentOperatorSubmarinerIoServicediscoveriesCrYaml,
 	"manifests/agent/operator/submariner.io-submariners-cr.yaml":         manifestsAgentOperatorSubmarinerIoSubmarinersCrYaml,
+	"manifests/agent/rbac/submariner-admin-aggeragate-clusterrole.yaml":  manifestsAgentRbacSubmarinerAdminAggeragateClusterroleYaml,
 	"manifests/agent/rbac/submariner-cluster-rolebinding.yaml":           manifestsAgentRbacSubmarinerClusterRolebindingYaml,
 	"manifests/agent/rbac/submariner-cluster-serviceaccount.yaml":        manifestsAgentRbacSubmarinerClusterServiceaccountYaml,
 	"manifests/agent/rbac/submariner-lighthouse-clusterrole.yaml":        manifestsAgentRbacSubmarinerLighthouseClusterroleYaml,
@@ -731,6 +760,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"submariner.io-submariners-cr.yaml":        {manifestsAgentOperatorSubmarinerIoSubmarinersCrYaml, map[string]*bintree{}},
 			}},
 			"rbac": {nil, map[string]*bintree{
+				"submariner-admin-aggeragate-clusterrole.yaml":  {manifestsAgentRbacSubmarinerAdminAggeragateClusterroleYaml, map[string]*bintree{}},
 				"submariner-cluster-rolebinding.yaml":           {manifestsAgentRbacSubmarinerClusterRolebindingYaml, map[string]*bintree{}},
 				"submariner-cluster-serviceaccount.yaml":        {manifestsAgentRbacSubmarinerClusterServiceaccountYaml, map[string]*bintree{}},
 				"submariner-lighthouse-clusterrole.yaml":        {manifestsAgentRbacSubmarinerLighthouseClusterroleYaml, map[string]*bintree{}},

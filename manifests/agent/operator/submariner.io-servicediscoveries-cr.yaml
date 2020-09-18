@@ -7,8 +7,8 @@ spec:
   brokerK8sApiServer: {{ .BrokerAPIServer }}
   brokerK8sApiServerToken: {{ .BrokerToken }}
   brokerK8sCA: {{ .BrokerCA }}
-  brokerK8sRemoteNamespace: submariner-k8s-broker
-  clusterID: {{ .ManagedClusterName }}
+  brokerK8sRemoteNamespace: {{ .BrokerNamespace }}
+  clusterID: {{ .ClusterName }}
   debug: false
   namespace: submariner-operator
   repository: quay.io/submariner

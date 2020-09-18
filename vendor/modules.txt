@@ -29,6 +29,7 @@ github.com/evanphx/json-patch
 # github.com/getsentry/raven-go v0.0.0-20190513200303-c977f96e1095
 github.com/getsentry/raven-go
 # github.com/ghodss/yaml v1.0.0
+## explicit
 github.com/ghodss/yaml
 # github.com/go-bindata/go-bindata v3.1.2+incompatible
 ## explicit
@@ -110,8 +111,10 @@ github.com/open-cluster-management/api/client/cluster/informers/externalversions
 github.com/open-cluster-management/api/client/cluster/listers/cluster/v1
 github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1
 github.com/open-cluster-management/api/client/work/clientset/versioned
+github.com/open-cluster-management/api/client/work/clientset/versioned/fake
 github.com/open-cluster-management/api/client/work/clientset/versioned/scheme
 github.com/open-cluster-management/api/client/work/clientset/versioned/typed/work/v1
+github.com/open-cluster-management/api/client/work/clientset/versioned/typed/work/v1/fake
 github.com/open-cluster-management/api/client/work/informers/externalversions
 github.com/open-cluster-management/api/client/work/informers/externalversions/internalinterfaces
 github.com/open-cluster-management/api/client/work/informers/externalversions/work

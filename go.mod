@@ -3,6 +3,7 @@ module github.com/qiujian16/acm-submariner
 go 1.14
 
 require (
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/open-cluster-management/api v0.0.0-20200903203421-64b667f5455c
 	github.com/openshift/api v0.0.0-20200827090112-c05698d102cf

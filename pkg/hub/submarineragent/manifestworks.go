@@ -2,6 +2,8 @@ package submarineragent
 
 import (
 	"context"
+	"fmt"
+	"github.com/ghodss/yaml"
 	workv1client "github.com/open-cluster-management/api/client/work/clientset/versioned"
 	workv1 "github.com/open-cluster-management/api/work/v1"
 	"github.com/openshift/library-go/pkg/assets"
@@ -12,9 +14,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/klog/v2"
 	"path/filepath"
 )
 
@@ -44,6 +48,7 @@ var (
 			name:      "submariner-agent-rbac",
 			mustAsset: bindata.MustAsset,
 			files: []string{
+				"manifests/agent/rbac/submariner-admin-aggeragate-clusterrole.yaml",
 				"manifests/agent/rbac/submariner-lighthouse-clusterrole.yaml",
 				"manifests/agent/rbac/submariner-lighthouse-clusterrolebinding.yaml",
 				"manifests/agent/rbac/submariner-lighthouse-serviceaccount.yaml",
@@ -111,7 +116,7 @@ func NewSubmarinerConfig(
 
 func wrapManifestWorks(config *SubmarinerConfig) ([]*workv1.ManifestWork, error) {
 	var manifestWorks []*workv1.ManifestWork
-
+	klog.V(4).Infof("config: %+v", config)
 	for _, w := range wrappers {
 		work := &workv1.ManifestWork{
 			TypeMeta: metav1.TypeMeta{},
@@ -124,8 +129,13 @@ func wrapManifestWorks(config *SubmarinerConfig) ([]*workv1.ManifestWork, error)
 
 		var manifests []workv1.Manifest
 		for _, file := range w.files {
-			manifest := workv1.Manifest{}
-			manifest.Raw = assets.MustCreateAssetFromTemplate(file, w.mustAsset(filepath.Join("", file)), config).Data
+			yamlData := assets.MustCreateAssetFromTemplate(file, w.mustAsset(filepath.Join("", file)), config).Data
+			jsonData, err := yaml.YAMLToJSON(yamlData)
+			if err != nil {
+				klog.Errorf("failed to YAMLToJSON %+v: %+v : %+v", file, jsonData, err)
+				return manifestWorks, err
+			}
+			manifest := workv1.Manifest{RawExtension: runtime.RawExtension{Raw: jsonData}}
 			manifests = append(manifests, manifest)
 		}
 		work.Spec.Workload.Manifests = manifests
@@ -141,13 +151,14 @@ func ApplySubmarinerManifestWorks(config *SubmarinerConfig, client workv1client.
 
 	manifestWorks, err := wrapManifestWorks(config)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to wrap mainfestWorks:%+v", err)
 	}
 
 	for _, work := range manifestWorks {
 		err := ApplyManifestWork(work, client, ctx)
 		if err != nil {
-			errs = append(errs, err)
+			errs = append(errs, fmt.Errorf("failed to apply manifestWork %+v: %+v", work.Name, err))
+			klog.Errorf("failed to apply manifestWork %+v: %+v : %+v", work.Name, work, err)
 			continue
 		}
 	}

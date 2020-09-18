@@ -11,11 +11,10 @@ resources:
 
 images:
 - name: quay.io/open-cluster-management/acm-submariner:latest
-  newName: yinzw/acm-submariner
+  newName: quay.io/open-cluster-management/acm-submariner
   newTag: latest
 
 configMapGenerator:
 - name: submariner-broker-apiserver
   literals:
     - apiserver="10.0.118.46:42415"
-

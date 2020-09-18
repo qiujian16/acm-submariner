@@ -32,3 +32,10 @@ $(call build-image,$(IMAGE),$(IMAGE_REGISTRY)/$(IMAGE),./Dockerfile,.)
 $(call add-bindata,submariner-crd,./manifests/crds/...,bindata,bindata,./pkg/hub/bindata/bindata.go)
 $(call add-bindata,submariner-broker,./manifests/broker/...,bindata,bindata,./pkg/hub/submarinerbroker/bindata/bindata.go)
 $(call add-bindata,submariner-agent,./manifests/agent/...,bindata,bindata,./pkg/hub/submarineragent/bindata/bindata.go)
+
+clean:
+	scripts/deploy.sh cleanup
+.PHONY: clean
+
+clusters: images
+	scripts/deploy.sh

@@ -29,5 +29,6 @@ GO_TEST_PACKAGES :=./pkg/...
 # It will generate target "image-$(1)" for building the image and binding it as a prerequisite to target "images".
 $(call build-image,$(IMAGE),$(IMAGE_REGISTRY)/$(IMAGE),./Dockerfile,.)
 
+$(call add-bindata,submariner-crd,./manifests/crds/...,bindata,bindata,./pkg/hub/bindata/bindata.go)
 $(call add-bindata,submariner-broker,./manifests/broker/...,bindata,bindata,./pkg/hub/submarinerbroker/bindata/bindata.go)
 $(call add-bindata,submariner-agent,./manifests/agent/...,bindata,bindata,./pkg/hub/submarineragent/bindata/bindata.go)

@@ -2,8 +2,9 @@ package submarinerbroker
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
+	"github.com/qiujian16/acm-submariner/pkg/helpers"
+	hubbindata "github.com/qiujian16/acm-submariner/pkg/hub/bindata"
 	"path/filepath"
 
 	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1"
@@ -19,7 +20,6 @@ import (
 
 	"github.com/qiujian16/acm-submariner/pkg/hub/submarinerbroker/bindata"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,15 +29,22 @@ import (
 )
 
 const (
-	brokerFinalizer    = "cluster.open-cluster-management.io/submariner-cleanup"
-	ipsecSecretLength  = 48
-	ipsecPSKSecretName = "submariner-ipsec-psk"
+	brokerFinalizer = "cluster.open-cluster-management.io/submariner-cleanup"
 )
 
-var staticResourceFiles = []string{
-	"manifests/broker/broker-namespace.yaml",
-	"manifests/broker/broker-cluster-role.yaml",
-}
+var (
+	staticResourceFiles = []string{
+		"manifests/broker/broker-namespace.yaml",
+		"manifests/broker/broker-cluster-role.yaml",
+	}
+
+	staticCRDResourceFiles = []string{
+		"manifests/crds/submariner.io_clusters_crd.yaml",
+		"manifests/crds/submariner.io_endpoints_crd.yaml",
+		"manifests/crds/lighthouse.submariner.io_multiclusterservices_crd.yaml",
+		"manifests/crds/lighthouse.submariner.io_serviceimports_crd.yaml",
+	}
+)
 
 type submarinerBrokerController struct {
 	kubeClient       kubernetes.Interface
@@ -121,6 +128,17 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 		},
 		staticResourceFiles...,
 	)
+
+	applyCRDResults := resourceapply.ApplyDirectly(
+		clientHolder,
+		syncCtx.Recorder(),
+		func(name string) ([]byte, error) {
+			return assets.MustCreateAssetFromTemplate(name, hubbindata.MustAsset(filepath.Join("", name)), config).Data, nil
+		},
+		staticCRDResourceFiles...,
+	)
+
+	applyResults = append(applyResults, applyCRDResults...)
 	errs := []error{}
 	for _, result := range applyResults {
 		if result.Error != nil {
@@ -129,7 +147,7 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 	}
 
 	// generate IPSECPSK secret
-	if err := c.generateIPSECPSKSecret(ctx, config.SubmarinerNamespace); err != nil {
+	if err := helpers.GenerateIPSecPSKSecret(c.kubeClient, config.SubmarinerNamespace); err != nil {
 		errs = append(errs, fmt.Errorf("unable to generate IPSECPSK secret : %v", err))
 	}
 
@@ -156,29 +174,5 @@ func (c *submarinerBrokerController) removeClusterManagerFinalizer(ctx context.C
 		return err
 	}
 
-	return nil
-}
-
-func (c *submarinerBrokerController) generateIPSECPSKSecret(ctx context.Context, brokerNamespace string) error {
-	_, err := c.kubeClient.CoreV1().Secrets(brokerNamespace).Get(ctx, ipsecPSKSecretName, metav1.GetOptions{})
-	switch {
-	case errors.IsNotFound(err):
-		psk := make([]byte, ipsecSecretLength)
-		if _, err := rand.Read(psk); err != nil {
-			return err
-		}
-		pskSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: ipsecPSKSecretName,
-			},
-			Data: map[string][]byte{
-				"psk": psk,
-			},
-		}
-		_, err := c.kubeClient.CoreV1().Secrets(brokerNamespace).Create(ctx, pskSecret, metav1.CreateOptions{})
-		return err
-	case err != nil:
-		return err
-	}
 	return nil
 }

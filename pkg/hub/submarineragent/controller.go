@@ -3,8 +3,6 @@ package submarineragent
 import (
 	"context"
 	"fmt"
-	"path/filepath"
-
 	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterinformerv1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1"
 	clusterinformerv1alpha1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
@@ -15,6 +13,8 @@ import (
 	worklister "github.com/open-cluster-management/api/client/work/listers/work/v1"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
+	"k8s.io/client-go/dynamic"
+	"path/filepath"
 
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
@@ -53,6 +53,7 @@ type clusterRBACConfig struct {
 // corresponding submariner agent manifestworks
 type submarinerAgentController struct {
 	kubeClient         kubernetes.Interface
+	dynamicClient      dynamic.Interface
 	clusterClient      clientset.Interface
 	manifestWorkClient workv1client.Interface
 	clusterLister      clusterlisterv1.ManagedClusterLister
@@ -64,6 +65,7 @@ type submarinerAgentController struct {
 // NewSubmarinerAgentController returns a submarinerAgentController instance
 func NewSubmarinerAgentController(
 	kubeClient kubernetes.Interface,
+	dynamicClient dynamic.Interface,
 	clusterClient clientset.Interface,
 	manifestWorkClient workv1client.Interface,
 	clusterInformer clusterinformerv1.ManagedClusterInformer,
@@ -72,6 +74,7 @@ func NewSubmarinerAgentController(
 	recorder events.Recorder) factory.Controller {
 	c := &submarinerAgentController{
 		kubeClient:         kubeClient,
+		dynamicClient:      dynamicClient,
 		clusterClient:      clusterClient,
 		manifestWorkClient: manifestWorkClient,
 		clusterLister:      clusterInformer.Lister(),
@@ -110,7 +113,7 @@ func (c *submarinerAgentController) sync(ctx context.Context, syncCtx factory.Sy
 		return err
 	}
 
-	if err := c.syncManagedClusert(ctx, managedCluster); err != nil {
+	if err := c.syncManagedCluster(ctx, managedCluster); err != nil {
 		return err
 	}
 
@@ -126,7 +129,7 @@ func (c *submarinerAgentController) syncAllManagedClusters(ctx context.Context) 
 
 	errs := []error{}
 	for _, managedCluster := range managedClusters {
-		if err = c.syncManagedClusert(ctx, managedCluster); err != nil {
+		if err = c.syncManagedCluster(ctx, managedCluster); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -134,8 +137,8 @@ func (c *submarinerAgentController) syncAllManagedClusters(ctx context.Context) 
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-// syncManagedClusert syncs one managed cluster
-func (c *submarinerAgentController) syncManagedClusert(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
+// syncManagedCluster syncs one managed cluster
+func (c *submarinerAgentController) syncManagedCluster(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
 	//TODO: selected the cluster with label
 
 	// add a submariner agent finalizer to a managed cluster
@@ -157,7 +160,7 @@ func (c *submarinerAgentController) syncManagedClusert(ctx context.Context, mana
 	// managed cluster is deleting, we remove its related resources
 	if !managedCluster.DeletionTimestamp.IsZero() {
 		// remove the submariner agent from this managedCluster
-		if err := c.removeSubmarinerAgent(managedCluster); err != nil {
+		if err := c.removeSubmarinerAgent(ctx, managedCluster); err != nil {
 			return err
 		}
 		return c.removeAgentFinalizer(ctx, managedCluster)
@@ -172,10 +175,10 @@ func (c *submarinerAgentController) syncManagedClusert(ctx context.Context, mana
 	case len(matchedClusterSets) == 0:
 		// the managed cluster original clusterset may be deleted or changed, try to remove the submariner
 		// agent from the managed cluter
-		return c.removeSubmarinerAgent(managedCluster)
+		return c.removeSubmarinerAgent(ctx, managedCluster)
 	case len(matchedClusterSets) == 1:
 		// deploy the submariner agent on this managed cluster
-		return c.deploySubmarinerAgent(matchedClusterSets[0], managedCluster)
+		return c.deploySubmarinerAgent(ctx, matchedClusterSets[0], managedCluster)
 	case len(matchedClusterSets) > 1:
 		// case1: the managed cluter belongs more than one clusterset at the beginning, do nothing
 		// case2: the managed cluter belongs more than one clusterset due to a certain clusterset is changed,
@@ -222,31 +225,40 @@ func (c *submarinerAgentController) findClusterSet(managedCluster *clusterv1.Man
 	return matchedSets, nil
 }
 
-func (c *submarinerAgentController) deploySubmarinerAgent(clusterSet *clusterv1alpha1.ManagedClusterSet, managedCluster *clusterv1.ManagedCluster) error {
+func (c *submarinerAgentController) deploySubmarinerAgent(ctx context.Context, clusterSet *clusterv1alpha1.ManagedClusterSet, managedCluster *clusterv1.ManagedCluster) error {
 	// generate service account and bind it to `submariner-k8s-broker-cluster` role
 	brokerNamespace := fmt.Sprintf("submariner-clusterset-%s-broker", clusterSet.Name)
 	if err := c.applyClusterRBACFiles(brokerNamespace, managedCluster.ClusterName); err != nil {
 		return err
 	}
 
-	//TODO generate submariner CR
-	//TODO deploy operator manifestwork
-	//TODO deploy submarinere CR manifestwork
+	config, err := NewSubmarinerConfig(c.kubeClient, c.dynamicClient, managedCluster.Name, brokerNamespace)
+	if err != nil {
+		c.eventRecorder.Warning("SubmarinerAgentDeployedFailed",
+			fmt.Sprintf("failed to get config of submariner agent on managed cluster %v: %v", managedCluster.Name, err))
+		return err
+	}
+
+	if err := ApplySubmarinerManifestWorks(config, c.manifestWorkClient, ctx); err != nil {
+		c.eventRecorder.Warning("SubmarinerAgentDeployedFailed",
+			fmt.Sprintf("failed to deploy submariner agent on managed cluster %v: %v", managedCluster.Name, err))
+		return err
+	}
 
 	c.eventRecorder.Event("SubmarinerAgentDeployed", fmt.Sprintf("submariner agent was deployed on managed cluster %q", managedCluster.Name))
 	return nil
 }
 
-func (c *submarinerAgentController) removeSubmarinerAgent(managedCluster *clusterv1.ManagedCluster) error {
+func (c *submarinerAgentController) removeSubmarinerAgent(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
 	errs := []error{}
-	// remove service account and its rolebinding from broker namespace
-	if err := c.removeClusterRBACFiles(managedCluster.Name); err != nil {
-		errs = append(errs, err)
+	if err := RemoveSubmarinerManifestWorks(managedCluster.Name, c.manifestWorkClient, ctx); err != nil {
+		errs = append(errs, fmt.Errorf("failed to remove submariner agent from managed cluster %v: %v", managedCluster.Name, err))
 	}
 
-	//TODO reomvoe submariner CR
-	//TODO reomvoe operator manifestwork
-	//TODO reomvoe submarinere CR manifestwork
+	// remove service account and its rolebinding from broker namespace
+	if err := c.removeClusterRBACFiles(managedCluster.Name, ctx); err != nil {
+		errs = append(errs, err)
+	}
 
 	if len(errs) == 0 {
 		c.eventRecorder.Event("SubmarinerAgentRemoved", fmt.Sprintf("submariner agent was removed from managed cluster %q", managedCluster.Name))
@@ -277,8 +289,8 @@ func (c *submarinerAgentController) applyClusterRBACFiles(brokerNamespace, manag
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func (c *submarinerAgentController) removeClusterRBACFiles(managedClusterName string) error {
-	serviceAccounts, err := c.kubeClient.CoreV1().ServiceAccounts(metav1.NamespaceAll).List(context.TODO(), metav1.ListOptions{
+func (c *submarinerAgentController) removeClusterRBACFiles(managedClusterName string, ctx context.Context) error {
+	serviceAccounts, err := c.kubeClient.CoreV1().ServiceAccounts(metav1.NamespaceAll).List(ctx, metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("%s=%s", serviceAccountLabel, managedClusterName),
 	})
 	if errors.IsNotFound(err) {

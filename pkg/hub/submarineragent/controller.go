@@ -3,7 +3,7 @@ package submarineragent
 import (
 	"context"
 	"fmt"
-	"sync"
+	"path/filepath"
 
 	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterinformerv1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1"
@@ -16,9 +16,14 @@ import (
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 
+	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+
+	"github.com/qiujian16/acm-submariner/pkg/helpers"
+	"github.com/qiujian16/acm-submariner/pkg/hub/submarineragent/bindata"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -30,22 +35,30 @@ import (
 )
 
 const (
-	manifestDir    = "pkg/hub/submarineragent"
-	agentFinalizer = "cluster.open-cluster-management.io/submariner-agent-cleanup"
+	agentFinalizer      = "cluster.open-cluster-management.io/submariner-agent-cleanup"
+	serviceAccountLabel = "cluster.open-cluster-management.io/submariner-cluster-sa"
 )
+
+var clusterRBACFiles = []string{
+	"manifests/agent/rbac/submariner-cluster-serviceaccount.yaml",
+	"manifests/agent/rbac/submariner-cluster-rolebinding.yaml",
+}
+
+type clusterRBACConfig struct {
+	ManagedClusterName        string
+	SubmarinerBrokerNamespace string
+}
 
 // submarinerAgentController reconciles instances of ManagedCluster on the hub to deploy/remove
 // corresponding submariner agent manifestworks
 type submarinerAgentController struct {
-	kubeClient              kubernetes.Interface
-	clusterClient           clientset.Interface
-	manifestWorkClient      workv1client.Interface
-	clusterLister           clusterlisterv1.ManagedClusterLister
-	clusterSetLister        clusterlisterv1alpha1.ManagedClusterSetLister
-	manifestWorkLister      worklister.ManifestWorkLister
-	lock                    sync.Mutex
-	lastSelectedClusterSets map[string]sets.String
-	eventRecorder           events.Recorder
+	kubeClient         kubernetes.Interface
+	clusterClient      clientset.Interface
+	manifestWorkClient workv1client.Interface
+	clusterLister      clusterlisterv1.ManagedClusterLister
+	clusterSetLister   clusterlisterv1alpha1.ManagedClusterSetLister
+	manifestWorkLister worklister.ManifestWorkLister
+	eventRecorder      events.Recorder
 }
 
 // NewSubmarinerAgentController returns a submarinerAgentController instance
@@ -58,14 +71,13 @@ func NewSubmarinerAgentController(
 	manifestWorkInformer workinformer.ManifestWorkInformer,
 	recorder events.Recorder) factory.Controller {
 	c := &submarinerAgentController{
-		kubeClient:              kubeClient,
-		clusterClient:           clusterClient,
-		manifestWorkClient:      manifestWorkClient,
-		clusterLister:           clusterInformer.Lister(),
-		clusterSetLister:        clusterSetInformer.Lister(),
-		manifestWorkLister:      manifestWorkInformer.Lister(),
-		lastSelectedClusterSets: make(map[string]sets.String),
-		eventRecorder:           recorder.WithComponentSuffix("submariner-agent-controller"),
+		kubeClient:         kubeClient,
+		clusterClient:      clusterClient,
+		manifestWorkClient: manifestWorkClient,
+		clusterLister:      clusterInformer.Lister(),
+		clusterSetLister:   clusterSetInformer.Lister(),
+		manifestWorkLister: manifestWorkInformer.Lister(),
+		eventRecorder:      recorder.WithComponentSuffix("submariner-agent-controller"),
 	}
 	return factory.New().
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
@@ -124,6 +136,8 @@ func (c *submarinerAgentController) syncAllManagedClusters(ctx context.Context) 
 
 // syncManagedClusert syncs one managed cluster
 func (c *submarinerAgentController) syncManagedClusert(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
+	//TODO: selected the cluster with label
+
 	// add a submariner agent finalizer to a managed cluster
 	if managedCluster.DeletionTimestamp.IsZero() {
 		hasFinalizer := false
@@ -166,6 +180,7 @@ func (c *submarinerAgentController) syncManagedClusert(ctx context.Context, mana
 		// case1: the managed cluter belongs more than one clusterset at the beginning, do nothing
 		// case2: the managed cluter belongs more than one clusterset due to a certain clusterset is changed,
 		// we keep the submariner agent, do nothing
+		c.eventRecorder.Warning("SubmarinerUndeployed", fmt.Sprintf("There are one more than clustersets for managed cluster %q", managedCluster.Name))
 		return nil
 	}
 	return nil
@@ -208,24 +223,89 @@ func (c *submarinerAgentController) findClusterSet(managedCluster *clusterv1.Man
 }
 
 func (c *submarinerAgentController) deploySubmarinerAgent(clusterSet *clusterv1alpha1.ManagedClusterSet, managedCluster *clusterv1.ManagedCluster) error {
+	// generate service account and bind it to `submariner-k8s-broker-cluster` role
 	brokerNamespace := fmt.Sprintf("submariner-clusterset-%s-broker", clusterSet.Name)
-	//TODO generate service account and rolebinding on the corresponding broker namspaces
-	// the SA should have a label to be marked, thus, we can delete it easily
-	c.eventRecorder.Event("SubmarinerSAcreated", fmt.Sprintf("submariner service account is created on namespace %q", brokerNamespace))
+	if err := c.applyClusterRBACFiles(brokerNamespace, managedCluster.ClusterName); err != nil {
+		return err
+	}
+
 	//TODO generate submariner CR
 	//TODO deploy operator manifestwork
 	//TODO deploy submarinere CR manifestwork
+
 	c.eventRecorder.Event("SubmarinerAgentDeployed", fmt.Sprintf("submariner agent was deployed on managed cluster %q", managedCluster.Name))
 	return nil
 }
 
 func (c *submarinerAgentController) removeSubmarinerAgent(managedCluster *clusterv1.ManagedCluster) error {
-	//TODO reomvoe service account token/rolebinding by the label
+	errs := []error{}
+	// remove service account and its rolebinding from broker namespace
+	if err := c.removeClusterRBACFiles(managedCluster.Name); err != nil {
+		errs = append(errs, err)
+	}
+
 	//TODO reomvoe submariner CR
 	//TODO reomvoe operator manifestwork
 	//TODO reomvoe submarinere CR manifestwork
-	c.eventRecorder.Event("SubmarinerAgentRemoved", fmt.Sprintf("submariner agent was removed from managed cluster %q", managedCluster.Name))
-	return nil
+
+	if len(errs) == 0 {
+		c.eventRecorder.Event("SubmarinerAgentRemoved", fmt.Sprintf("submariner agent was removed from managed cluster %q", managedCluster.Name))
+	}
+	return operatorhelpers.NewMultiLineAggregate(errs)
+}
+
+func (c *submarinerAgentController) applyClusterRBACFiles(brokerNamespace, managedClusterName string) error {
+	config := &clusterRBACConfig{
+		ManagedClusterName:        managedClusterName,
+		SubmarinerBrokerNamespace: brokerNamespace,
+	}
+	clientHolder := resourceapply.NewKubeClientHolder(c.kubeClient)
+	applyResults := resourceapply.ApplyDirectly(
+		clientHolder,
+		c.eventRecorder,
+		func(name string) ([]byte, error) {
+			return assets.MustCreateAssetFromTemplate(name, bindata.MustAsset(filepath.Join("", name)), config).Data, nil
+		},
+		clusterRBACFiles...,
+	)
+	errs := []error{}
+	for _, result := range applyResults {
+		if result.Error != nil {
+			errs = append(errs, fmt.Errorf("%q (%T): %v", result.File, result.Type, result.Error))
+		}
+	}
+	return operatorhelpers.NewMultiLineAggregate(errs)
+}
+
+func (c *submarinerAgentController) removeClusterRBACFiles(managedClusterName string) error {
+	serviceAccounts, err := c.kubeClient.CoreV1().ServiceAccounts(metav1.NamespaceAll).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("%s=%s", serviceAccountLabel, managedClusterName),
+	})
+	if errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	if len(serviceAccounts.Items) != 1 {
+		return fmt.Errorf("one more than service accounts are found for %q", managedClusterName)
+	}
+
+	config := &clusterRBACConfig{
+		ManagedClusterName:        managedClusterName,
+		SubmarinerBrokerNamespace: serviceAccounts.Items[0].Namespace,
+	}
+
+	return helpers.CleanUpSubmarinerManifests(
+		context.TODO(),
+		c.kubeClient,
+		c.eventRecorder,
+		func(name string) ([]byte, error) {
+			return assets.MustCreateAssetFromTemplate(name, bindata.MustAsset(filepath.Join("", name)), config).Data, nil
+		},
+		clusterRBACFiles...,
+	)
 }
 
 // selectAllClusters selects all of clusters from a clusterset

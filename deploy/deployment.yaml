@@ -19,7 +19,7 @@ spec:
       containers:
       - name: acm-submariner
         image: quay.io/open-cluster-management/acm-submariner:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         args:
           - "/submariner"
           - "controller"

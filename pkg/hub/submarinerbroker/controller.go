@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/qiujian16/acm-submariner/pkg/helpers"
-	hubbindata "github.com/qiujian16/acm-submariner/pkg/hub/bindata"
 	"path/filepath"
 
 	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1"
@@ -36,13 +35,6 @@ var (
 	staticResourceFiles = []string{
 		"manifests/broker/broker-namespace.yaml",
 		"manifests/broker/broker-cluster-role.yaml",
-	}
-
-	staticCRDResourceFiles = []string{
-		"manifests/crds/submariner.io_clusters_crd.yaml",
-		"manifests/crds/submariner.io_endpoints_crd.yaml",
-		"manifests/crds/lighthouse.submariner.io_multiclusterservices_crd.yaml",
-		"manifests/crds/lighthouse.submariner.io_serviceimports_crd.yaml",
 	}
 )
 
@@ -129,16 +121,6 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 		staticResourceFiles...,
 	)
 
-	applyCRDResults := resourceapply.ApplyDirectly(
-		clientHolder,
-		syncCtx.Recorder(),
-		func(name string) ([]byte, error) {
-			return assets.MustCreateAssetFromTemplate(name, hubbindata.MustAsset(filepath.Join("", name)), config).Data, nil
-		},
-		staticCRDResourceFiles...,
-	)
-
-	applyResults = append(applyResults, applyCRDResults...)
 	errs := []error{}
 	for _, result := range applyResults {
 		if result.Error != nil {

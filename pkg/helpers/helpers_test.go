@@ -179,7 +179,7 @@ func TestGetBrokerTokenAndCA(t *testing.T) {
 						"ca.crt": []byte("ca"),
 						"token":  []byte("token"),
 					},
-					Type: "kubernetes.io/service-account-token",
+					Type: corev1.SecretTypeServiceAccountToken,
 				},
 			},
 			expectErr: true,

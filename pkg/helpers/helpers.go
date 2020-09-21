@@ -2,8 +2,8 @@ package helpers
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
-
 	"github.com/openshift/api"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
@@ -119,7 +119,7 @@ func GetIPSecPSK(client kubernetes.Interface, brokerNamespace string) (string, e
 		return "", fmt.Errorf("failed to broker IPSECPSK secret %v/%v: %v", brokerNamespace, IPSecPSKSecretName, err)
 	}
 
-	return string(secret.Data["psk"]), nil
+	return base64.StdEncoding.EncodeToString(secret.Data["psk"]), nil
 }
 
 var (
@@ -170,7 +170,8 @@ func GetBrokerTokenAndCA(client kubernetes.Interface, brokerNS, clusterName stri
 			}
 
 			if tokenSecret.Type == corev1.SecretTypeServiceAccountToken {
-				return string(tokenSecret.Data["token"]), string(tokenSecret.Data["ca.crt"]), nil
+				ca := base64.StdEncoding.EncodeToString(tokenSecret.Data["ca.crt"])
+				return string(tokenSecret.Data["token"]), ca, nil
 			}
 		}
 	}

@@ -228,7 +228,7 @@ func (c *submarinerAgentController) findClusterSet(managedCluster *clusterv1.Man
 func (c *submarinerAgentController) deploySubmarinerAgent(ctx context.Context, clusterSet *clusterv1alpha1.ManagedClusterSet, managedCluster *clusterv1.ManagedCluster) error {
 	// generate service account and bind it to `submariner-k8s-broker-cluster` role
 	brokerNamespace := fmt.Sprintf("submariner-clusterset-%s-broker", clusterSet.Name)
-	if err := c.applyClusterRBACFiles(brokerNamespace, managedCluster.ClusterName); err != nil {
+	if err := c.applyClusterRBACFiles(brokerNamespace, managedCluster.Name); err != nil {
 		return err
 	}
 

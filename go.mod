@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
-	github.com/open-cluster-management/api v0.0.0-20200903203421-64b667f5455c
+	github.com/open-cluster-management/api v0.0.0-20200923021655-f9a64b7328eb
 	github.com/openshift/api v0.0.0-20200827090112-c05698d102cf
 	github.com/openshift/build-machinery-go v0.0.0-20200819073603-48aa266c95f7
 	github.com/openshift/library-go v0.0.0-20200915114203-ee518dab897a

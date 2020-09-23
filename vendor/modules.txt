@@ -97,7 +97,7 @@ github.com/modern-go/concurrent
 github.com/modern-go/reflect2
 # github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 github.com/munnerz/goautoneg
-# github.com/open-cluster-management/api v0.0.0-20200903203421-64b667f5455c
+# github.com/open-cluster-management/api v0.0.0-20200923021655-f9a64b7328eb
 ## explicit
 github.com/open-cluster-management/api/client/cluster/clientset/versioned
 github.com/open-cluster-management/api/client/cluster/clientset/versioned/scheme

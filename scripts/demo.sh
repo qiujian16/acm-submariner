@@ -21,6 +21,9 @@ echo "Label the managed clusters with cluster.open-cluster-management.io/submari
 kubectl label managedclusters "${managedcluster1}" "cluster.open-cluster-management.io/submariner-agent=true" --overwrite
 kubectl label managedclusters "${managedcluster2}" "cluster.open-cluster-management.io/submariner-agent=true" --overwrite
 
+kubectl label managedclusters "${managedcluster1}" "cluster.open-cluster-management.io/clusterset=clusterset1" --overwrite
+kubectl label managedclusters "${managedcluster2}" "cluster.open-cluster-management.io/clusterset=clusterset1" --overwrite
+
 kubectl get managedclusters --show-labels
 
 echo "Apply a clusterset that contains managed cluster cluster2 and cluster3 ..."
@@ -29,11 +32,6 @@ apiVersion: cluster.open-cluster-management.io/v1alpha1
 kind: ManagedClusterSet
 metadata:
   name: clusterset1
-spec:
-  clusterSelectors:
-  - clusterNames:
-    - cluster2
-    - cluster3
 EOF
 
 echo "Wait the submariner manifestworks to be created on hub ..."

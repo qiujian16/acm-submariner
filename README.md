@@ -16,6 +16,7 @@ Below steps can be used to run this repo at a local environment
     - Delopy the `Klusterlet` on `cluster2` and `cluster3` to deploy managed cluster agents
     - Make the `cluster2` and `cluster3` join to the hub cluster `cluster1`
 3. Run the demo by `make demo`, this will
+    - Label the managed cluter with `cluster.open-cluster-management.io/submariner-agent`
     - Create a `Clusterset` that contains `cluster2` and `cluster3` on hub cluster `cluster1`, with
       this `Clusterset`, the `acm-submariner` controller will deploy the submariner broker on the
       hub cluser and deploy the submariner agents on the managed clusters by `ManifestWorks`

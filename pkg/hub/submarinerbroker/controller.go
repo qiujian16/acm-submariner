@@ -3,7 +3,6 @@ package submarinerbroker
 import (
 	"context"
 	"fmt"
-	"github.com/qiujian16/acm-submariner/pkg/helpers"
 	"path/filepath"
 
 	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1"
@@ -17,6 +16,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	operatorhelpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 
+	"github.com/qiujian16/acm-submariner/pkg/helpers"
 	"github.com/qiujian16/acm-submariner/pkg/hub/submarinerbroker/bindata"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -136,9 +136,16 @@ func (c *submarinerBrokerController) sync(ctx context.Context, syncCtx factory.S
 	return operatorhelpers.NewMultiLineAggregate(errs)
 }
 
-func (c *submarinerBrokerController) cleanUp(
-	ctx context.Context, controllerContext factory.SyncContext, config *brokerConfig) error {
-	return nil
+func (c *submarinerBrokerController) cleanUp(ctx context.Context, controllerContext factory.SyncContext, config *brokerConfig) error {
+	return helpers.CleanUpSubmarinerManifests(
+		ctx,
+		c.kubeClient,
+		controllerContext.Recorder(),
+		func(name string) ([]byte, error) {
+			return assets.MustCreateAssetFromTemplate(name, bindata.MustAsset(filepath.Join("", name)), config).Data, nil
+		},
+		staticResourceFiles...,
+	)
 }
 
 func (c *submarinerBrokerController) removeClusterManagerFinalizer(ctx context.Context, clusterset *clusterv1alpha1.ManagedClusterSet) error {

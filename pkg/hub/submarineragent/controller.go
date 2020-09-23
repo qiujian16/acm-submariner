@@ -3,6 +3,8 @@ package submarineragent
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+
 	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterinformerv1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1"
 	clusterinformerv1alpha1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
@@ -14,7 +16,6 @@ import (
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"k8s.io/client-go/dynamic"
-	"path/filepath"
 
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/controller/factory"
@@ -37,6 +38,7 @@ import (
 const (
 	agentFinalizer      = "cluster.open-cluster-management.io/submariner-agent-cleanup"
 	serviceAccountLabel = "cluster.open-cluster-management.io/submariner-cluster-sa"
+	submarinerLabel     = "cluster.open-cluster-management.io/submariner-agent"
 )
 
 var clusterRBACFiles = []string{
@@ -139,7 +141,10 @@ func (c *submarinerAgentController) syncAllManagedClusters(ctx context.Context) 
 
 // syncManagedCluster syncs one managed cluster
 func (c *submarinerAgentController) syncManagedCluster(ctx context.Context, managedCluster *clusterv1.ManagedCluster) error {
-	//TODO: selected the cluster with label
+	// the cluster does not have the submariner label, ignore it
+	if _, existed := managedCluster.Labels[submarinerLabel]; !existed {
+		return nil
+	}
 
 	// add a submariner agent finalizer to a managed cluster
 	if managedCluster.DeletionTimestamp.IsZero() {

@@ -17,7 +17,11 @@ kubeconfigs_dir="${work_dir}/kubeconfigs"
 echo "Switch to hub cluster ${hub}"
 export KUBECONFIG="${kubeconfigs_dir}/kind-config-${hub}/kubeconfig"
 
-kubectl get managedclusters
+echo "Label the managed clusters with cluster.open-cluster-management.io/submariner-agent"
+kubectl label managedclusters "${managedcluster1}" "cluster.open-cluster-management.io/submariner-agent=true" --overwrite
+kubectl label managedclusters "${managedcluster2}" "cluster.open-cluster-management.io/submariner-agent=true" --overwrite
+
+kubectl get managedclusters --show-labels
 
 echo "Apply a clusterset that contains managed cluster cluster2 and cluster3 ..."
 cat << EOF | kubectl apply -f -
@@ -128,6 +132,6 @@ sleep 2
 kubectl wait --for=condition=Ready pods -l app=dnstools -n default --timeout="5m"
 
 echo "Test the service nginx.default.svc.clusterset.local..."
-echo "kubectl exec -it dnstools -- curl -v nginx.default.svc.clusterset.local"
-sleep 10
+echo "kubectl --kubeconfig ${KUBECONFIG} -n default exec -it dnstools -- curl -v nginx.default.svc.clusterset.local"
+sleep 15
 kubectl exec -it dnstools -- curl -v nginx.default.svc.clusterset.local
